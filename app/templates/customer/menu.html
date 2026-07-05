@@ -89,10 +89,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
             <div class="cat-title">{{ cat.name.get(lang, cat.name.get('en', '')) }}</div>
             {% for item in cat.items if item.available %}
             <div class="item-card">
-                <div class="item-img" style="background: {{ ['#fee2e2','#e0f2fe','#dcfce7','#fef3c7','#f3e8ff','#fce7f3']|random }}; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                    {% set emojis = ['🍛','🍗','🥘','🍜','🥟','🍕','🥗','🍝','🍣','🌮','🥙','🍔','🌯','🍦','🍰','🥤','☕','🧋'] %}
-                    {{ emojis[item.id % emojis|length] }}
-                </div>
+                <div class="item-img" style="background: {{ ['#fee2e2','#e0f2fe','#dcfce7','#fef3c7','#f3e8ff','#fce7f3']|random }};"></div>
                 <div class="item-body">
                     <div class="item-name">{{ item.name.get(lang, item.name.get('en', '')) }}</div>
                     {% if item.description %}
