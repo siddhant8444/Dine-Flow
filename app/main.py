@@ -590,6 +590,38 @@ async def admin_delete_item(rest_id: int, item_id: int, request: Request, db: Se
     return RedirectResponse(url=f"/super-admin/restaurant/{rest_id}/menu", status_code=303)
 
 
+import os, uuid
+from fastapi.responses import FileResponse
+
+UPLOAD_DIR = "app/static/uploads"
+
+@app.post("/super-admin/restaurant/{rest_id}/menu/item/{item_id}/upload-image")
+async def admin_upload_item_image(
+    rest_id: int,
+    item_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    admin_auth(request)
+    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    filename = f"item_{item_id}_{uuid.uuid4().hex[:8]}{ext}"
+    path = os.path.join(UPLOAD_DIR, filename)
+
+    content = await file.read()
+    with open(path, "wb") as f:
+        f.write(content)
+
+    item.image_url = f"/static/uploads/{filename}"
+    db.commit()
+
+    return RedirectResponse(url=f"/super-admin/restaurant/{rest_id}/menu", status_code=303)
+
+
 @app.get("/super-admin/restaurant/{rest_id}/tables", response_class=HTMLResponse)
 async def admin_tables(request: Request, rest_id: int, db: Session = Depends(get_db)):
     admin_auth(request)
