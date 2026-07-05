@@ -71,7 +71,7 @@
                     <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
                 </div>
                 <div style="margin-top: 0.3rem;">
-                    <textarea x-model="item.notes" placeholder="Special instructions..." style="width: 100%; padding: 0.3rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid #ddd; resize: none;" rows="2"></textarea>
+                    <textarea x-model="item.notes" placeholder="e.g. spice level, extra sauce, no onions..." style="width: 100%; padding: 0.3rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid #ddd; resize: none; color: #333;" rows="2"></textarea>
                 </div>
                 <button @click="removeItem(idx)" style="border: none; background: none; color: #e63946; cursor: pointer; font-size: 0.85rem;">Remove</button>
             </div>
@@ -94,12 +94,30 @@
 
     <!-- Order Confirmation Modal -->
     <div x-show="orderPlaced" x-cloak style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200;">
-        <div class="card" style="padding: 2rem; text-align: center; max-width: 400px;">
-            <h2 style="color: #2a9d8f; margin-bottom: 1rem;">✓ Order Placed!</h2>
-            <p>Your order has been sent to the kitchen.</p>
-            <p style="margin-top: 0.5rem; color: #666;">Order #<span x-text="orderId"></span></p>
-            <button class="btn btn-secondary" style="margin-top: 1rem;" @click="orderPlaced = false; cart = []; showCart = false;">
-                Continue
+        <div class="card" style="padding: 2rem; max-width: 420px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 3rem; color: #2a9d8f;">✓</div>
+                <h2 style="color: #2a9d8f; margin-top: 0.5rem;">Order Placed!</h2>
+                <p style="color: #666;">Your order has been sent to the kitchen.</p>
+                <p style="font-size: 0.85rem; color: #999;">Order #<span x-text="orderId"></span></p>
+            </div>
+            <div style="border-top: 1px solid #eee; padding-top: 1rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Your Order</h3>
+                <template x-for="(item, idx) in placedItems" :key="idx">
+                    <div style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">
+                        <div class="flex" style="justify-content: space-between;">
+                            <span><strong x-text="item.name"></strong> <span x-text="'x' + item.qty" style="color: #666;"></span></span>
+                            <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                        </div>
+                        <div x-show="item.notes" style="font-size: 0.85rem; color: #e63946; margin-top: 0.25rem;">
+                            📝 <span x-text="item.notes"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 0.75rem;"
+                    @click="orderPlaced = false; cart = []; showCart = false;">
+                Done
             </button>
         </div>
     </div>
@@ -117,6 +135,7 @@ function menuApp() {
         orderPlaced: false,
         orderId: null,
         placing: false,
+        placedItems: [],
         lang: '{{ lang }}',
 
         changeLang(lang) {
@@ -161,6 +180,7 @@ function menuApp() {
                 });
                 const data = await res.json();
                 this.orderId = data.order_id;
+                this.placedItems = this.cart.map(i => ({ ...i }));
                 this.orderPlaced = true;
             } catch(e) {
                 alert('Failed to place order. Try again.');
