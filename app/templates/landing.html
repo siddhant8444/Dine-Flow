@@ -30,27 +30,16 @@ body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%
     <div class="tagline">Order from your table.<br>No app download needed.</div>
 
     <a href="/super-admin/login" class="menu-btn btn-admin">Super Admin</a>
-    <a href="/super-admin/restaurant/new" class="menu-btn btn-outline">➕ Register a Restaurant</a>
 
-    {% if restaurants %}
-    <div class="divider">Registered Restaurants</div>
-    <div class="resto-list">
-        {% for rest in restaurants %}
-        <a href="/{{ rest.slug }}/staff/login">
-            <div>
-                <div class="resto-name">{{ rest.name }}</div>
-                {% if rest.suburb %}
-                <div class="resto-sub">{{ rest.suburb }}</div>
-                {% endif %}
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span style="font-size: 0.8rem; color: #999;">{{ rest.tables|length }} tables</span>
-                <span class="resto-arrow">→</span>
-            </div>
-        </a>
-        {% endfor %}
+    <div class="divider">Staff</div>
+    <form action="/staff/redirect" method="get" style="display: flex; gap: 0.5rem;">
+        <input type="text" name="slug" placeholder="restaurant-slug" required
+               style="flex: 1; padding: 0.9rem 1rem; border: 2px solid #ddd; border-radius: 12px; font-size: 1rem;">
+        <button type="submit" class="btn" style="padding: 0.9rem 1.5rem; background: #1a1a2e; color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;">Go</button>
+    </form>
+    <div style="font-size: 0.8rem; color: #bbb; margin-top: 0.5rem;">
+        e.g. <strong>pizza-palace</strong>
     </div>
-    {% endif %}
 
     <div class="footer">
         Made for Melbourne & Sydney restaurants

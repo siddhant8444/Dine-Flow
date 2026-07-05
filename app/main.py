@@ -382,12 +382,23 @@ async def staff_ws(slug: str, websocket: WebSocket, db: Session = Depends(get_db
 
 # ─── Landing Page ─────────────────────────────────────────────────────
 
-@app.get("/", response_class=HTMLResponse)
-async def landing(request: Request, db: Session = Depends(get_db)):
+@app.get("/staff/redirect")
+async def staff_redirect(slug: str = ""):
+    if slug:
+        return RedirectResponse(url=f"/{slug}/staff/login")
+    return RedirectResponse(url="/")
+
+
+@app.get("/staff/login")
+async def staff_login_global(request: Request, db: Session = Depends(get_db)):
     restaurants = db.query(Restaurant).all()
-    return templates.TemplateResponse(request, "landing.html", {
+    return templates.TemplateResponse(request, "staff_login.html", {
         "restaurants": restaurants,
     })
+
+@app.get("/", response_class=HTMLResponse)
+async def landing(request: Request):
+    return templates.TemplateResponse(request, "landing.html", {})
 
 
 # ─── Super Admin Routes ───────────────────────────────────────────────
