@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ restaurant.name }} - Staff Dashboard{% endblock %}
+{% block content %}
+<div class="container" x-data="dashboardApp()">
+    <header class="flex" style="justify-content: space-between; align-items: center; padding: 0.5rem 0; margin-bottom: 1rem;">
+        <div>
+            <h1>{{ restaurant.name }}</h1>
+            <small>Staff Dashboard</small>
+        </div>
+        <div class="flex">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" x-model="soundEnabled" @change="toggleSound">
+                🔔 Sound
+            </label>
+        </div>
+    </header>
+
+    <audio id="order-alert" preload="auto">
+        <source src="/static/ding.wav" type="audio/wav">
+    </audio>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+        <!-- Table Grid -->
+        <div>
+            <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Tables</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;">
+                {% for table in tables %}
+                <div class="card" style="cursor: pointer; {% if table.is_occupied %}border-left: 4px solid #e63946;{% endif %}"
+                     @click="selectedTable = {{ table.id }}; fetchOrders({{ table.id }})">
+                    <div style="font-weight: bold;">Table {{ table.table_number }}</div>
+                    <div style="font-size: 0.85rem; color: {% if table.is_occupied %}#e63946{% else %}#2a9d8f{% endif %};">
+                        {{ '🔴 Occupied' if table.is_occupied else '🟢 Empty' }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Selected Table Orders -->
+            <div x-show="selectedTable" x-cloak style="margin-top: 1.5rem;">
+                <div class="card">
+                    <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h3 x-text="'Table ' + selectedTable"></h3>
+                        <div class="flex">
+                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"
+                                    @click="window.open('/{{ restaurant.slug }}/staff/table/' + selectedTable + '/bill', '_blank')">
+                                🧾 Bill
+                            </button>
+                            <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"
+                                    @click="clearTable(selectedTable)">
+                                Clear Table
+                            </button>
+                        </div>
+                    </div>
+                    <div id="table-orders">
+                        <p style="color: #999;">Select a table to view orders</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Orders Feed -->
+        <div>
+            <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Live Orders</h2>
+            <div id="live-orders" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% include "staff/_live_orders.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+function dashboardApp() {
+    return {
+        selectedTable: null,
+        soundEnabled: true,
+        ws: null,
+
+        init() {
+            this.connectWebSocket();
+        },
+
+        connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            this.ws = new WebSocket(`${protocol}://${window.location.host}/{{ restaurant.slug }}/ws/staff`);
+
+            this.ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.type === 'new_order') {
+                    if (this.soundEnabled) {
+                        document.getElementById('order-alert').play();
+                    }
+                    this.refreshOrders();
+                }
+            };
+
+            this.ws.onclose = () => {
+                setTimeout(() => this.connectWebSocket(), 3000);
+            };
+        },
+
+        toggleSound() {
+            // just toggles the reactive flag
+        },
+
+        fetchOrders(tableId) {
+            fetch('/{{ restaurant.slug }}/staff/orders/table/' + tableId)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('table-orders').innerHTML = html;
+                });
+        },
+
+        clearTable(tableId) {
+            if (!confirm('Clear table ' + tableId + '?')) return;
+            fetch('/{{ restaurant.slug }}/staff/table/' + tableId + '/clear', { method: 'POST' })
+                .then(() => {
+                    this.selectedTable = null;
+                    this.refreshOrders();
+                });
+        },
+
+        refreshOrders() {
+            htmx.ajax('GET', '/{{ restaurant.slug }}/staff/dashboard', { target: '#live-orders', swap: 'outerHTML' });
+        }
+    };
+}
+</script>
+{% endblock %}

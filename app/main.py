@@ -26,6 +26,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="DineFlow")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["now"] = datetime.utcnow
 
 
 class ConnectionManager:
@@ -206,6 +207,21 @@ async def update_order_status(slug: str, order_id: int, body: OrderStatusUpdate,
         raise HTTPException(404, "Order not found")
     order.status = body.status
     db.commit()
+
+    # If HTMX request, return refreshed live orders partial
+    if request.headers.get("HX-Request"):
+        restaurant = get_restaurant_by_slug(slug, db)
+        tables = db.query(Table).filter(Table.restaurant_id == restaurant.id).all()
+        orders = db.query(Order).filter(
+            Order.table_id.in_([t.id for t in tables]),
+            Order.status != "paid"
+        ).order_by(Order.created_at.desc()).all()
+        return templates.TemplateResponse("staff/_live_orders.html", {
+            "request": request,
+            "restaurant": restaurant,
+            "orders": orders,
+        })
+
     return {"status": body.status}
 
 

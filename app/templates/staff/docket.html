@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Docket - Order #{{ order.id }}{% endblock %}
+{% block head %}
+<style>
+@media print {
+    body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0; padding: 5mm; }
+    .no-print { display: none; }
+}
+body { font-family: 'Courier New', monospace; font-size: 14px; max-width: 80mm; margin: 0 auto; padding: 10px; }
+h1 { font-size: 18px; text-align: center; }
+h2 { font-size: 14px; text-align: center; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { text-align: left; padding: 4px 2px; }
+th { border-bottom: 1px dashed #000; }
+.footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
+</style>
+{% endblock %}
+{% block content %}
+<div id="docket">
+    <h1>{{ restaurant.name }}</h1>
+    <h2>Table {{ order.table.table_number }}</h2>
+    <p style="text-align: center;">Order #{{ order.id }} | {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    <hr style="border-top: 1px dashed #000;">
+    <table>
+        <thead>
+            <tr><th>Item</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+            {% for item in order.items %}
+            <tr>
+                <td>
+                    {{ item.menu_item.name.get('en', '') }}
+                    {% if item.modifiers %}
+                    <br><small style="color: #666;">+ {{ item.modifiers|map(attribute='name')|join(', ') }}</small>
+                    {% endif %}
+                    {% if item.notes %}
+                    <br><small style="color: #e63946;">Note: {{ item.notes }}</small>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <hr style="border-top: 1px dashed #000;">
+    <div class="footer">
+        <p>Ordered at: {{ order.created_at.strftime('%I:%M %p') }}</p>
+    </div>
+</div>
+<div class="no-print" style="text-align: center; margin-top: 20px;">
+    <button class="btn btn-primary" onclick="window.print()">Print Docket</button>
+    <br><br>
+    <a href="/{{ restaurant.slug }}/staff/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+{% endblock %}

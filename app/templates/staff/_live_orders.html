@@ -1,0 +1,42 @@
+{% if orders %}
+{% for order in orders %}
+<div class="card" id="order-{{ order.id }}" style="border-left: 4px solid #e63946;">
+    <div class="flex" style="justify-content: space-between;">
+        <strong>Table {{ order.table.table_number }}</strong>
+        <span style="font-size: 0.85rem; color: #666;">{{ order.created_at.strftime('%I:%M %p') }}</span>
+    </div>
+    {% for item in order.items %}
+    <div style="font-size: 0.9rem; margin-top: 0.3rem;">
+        {{ item.quantity }}x {{ item.menu_item.name.get('en', '') }}
+        {% if item.modifiers %}
+        <br><small style="color: #666;">+ {{ item.modifiers|map(attribute='name')|join(', ') }}</small>
+        {% endif %}
+        {% if item.notes %}
+        <br><small style="color: #e63946;">Note: {{ item.notes }}</small>
+        {% endif %}
+    </div>
+    {% endfor %}
+    <div class="flex" style="margin-top: 0.5rem; gap: 0.4rem; flex-wrap: wrap;">
+        <button class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #cce5ff; color: #004085;"
+                hx-patch="/{{ restaurant.slug }}/staff/order/{{ order.id }}/status"
+                hx-vals='{"status": "accepted"}'
+                hx-target="#live-orders"
+                hx-swap="outerHTML">Accept</button>
+        <button class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #d4edda; color: #155724;"
+                hx-patch="/{{ restaurant.slug }}/staff/order/{{ order.id }}/status"
+                hx-vals='{"status": "preparing"}'
+                hx-target="#live-orders"
+                hx-swap="outerHTML">Prepare</button>
+        <button class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #d1ecf1; color: #0c5460;"
+                hx-patch="/{{ restaurant.slug }}/staff/order/{{ order.id }}/status"
+                hx-vals='{"status": "ready"}'
+                hx-target="#live-orders"
+                hx-swap="outerHTML">Ready</button>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"
+                onclick="window.open('/{{ restaurant.slug }}/staff/order/{{ order.id }}/docket', '_blank')">🖨️</button>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<p style="color: #999; text-align: center; padding: 1rem;">No orders yet</p>
+{% endif %}

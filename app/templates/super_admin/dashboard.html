@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Super Admin{% endblock %}
+{% block content %}
+<div class="container">
+    <header class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>DineFlow — Super Admin</h1>
+        <a href="/super-admin/restaurant/new" class="btn btn-primary">+ New Restaurant</a>
+    </header>
+
+    <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Restaurants ({{ restaurants|length }})</h2>
+
+    <div style="display: grid; gap: 1rem;">
+        {% for rest in restaurants %}
+        <div class="card flex" style="justify-content: space-between;">
+            <div>
+                <strong>{{ rest.name }}</strong>
+                {% if rest.suburb %}
+                <span style="color: #666; font-size: 0.9rem;">— {{ rest.suburb }}</span>
+                {% endif %}
+                <br>
+                <small style="color: #999;">{{ rest.tables|length }} tables | {{ rest.currency }} | GST {{ rest.gst_rate|int }}%</small>
+            </div>
+            <div class="flex">
+                <a href="/super-admin/restaurant/{{ rest.id }}/menu" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Menu</a>
+                <a href="/super-admin/restaurant/{{ rest.id }}/tables" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Tables</a>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: #999; text-align: center; padding: 2rem;">No restaurants yet. Create your first one!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

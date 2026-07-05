@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Menu — {{ restaurant.name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <header class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1>{{ restaurant.name }}</h1>
+            <a href="/super-admin/dashboard" style="color: #457b9d; font-size: 0.9rem;">← Back to restaurants</a>
+        </div>
+        <div class="flex">
+            <a href="/{{ restaurant.slug }}/staff/dashboard" class="btn btn-secondary" target="_blank">Staff Dashboard</a>
+        </div>
+    </header>
+
+    <div style="display: grid; gap: 2rem;">
+        {% for cat in categories %}
+        <section>
+            <div class="flex" style="justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 1.1rem; color: #457b9d;">
+                    {{ cat.name.get('en', '') }}
+                </h2>
+            </div>
+            <div style="display: grid; gap: 0.5rem; margin-top: 0.5rem;">
+                {% for item in cat.items %}
+                <div class="card flex" style="justify-content: space-between;">
+                    <div>
+                        <strong>{{ item.name.get('en', '') }}</strong>
+                        <span style="color: #666;">— ${{ "%.2f"|format(item.price) }}</span>
+                        {% if not item.available %}
+                        <span style="background: #f8d7da; color: #721c24; font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">Sold Out</span>
+                        {% endif %}
+                        {% if item.description.get('en', '') %}
+                        <br><small style="color: #999;">{{ item.description.get('en', '') }}</small>
+                        {% endif %}
+                    </div>
+                    <form method="post" action="/super-admin/restaurant/{{ restaurant.id }}/menu/item/{{ item.id }}/delete" style="display:inline;">
+                        <button type="submit" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #f8d7da; color: #721c24;">Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Add Item Form -->
+            <form method="post" action="/super-admin/restaurant/{{ restaurant.id }}/menu/item" class="flex" style="margin-top: 0.75rem; flex-wrap: wrap;">
+                <input type="hidden" name="category_id" value="{{ cat.id }}">
+                <input type="text" name="name_en" placeholder="Item name (English)" required
+                       style="flex: 1; min-width: 180px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                <input type="number" name="price" placeholder="Price" step="0.01" min="0" required
+                       style="width: 100px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                <input type="text" name="description_en" placeholder="Description (optional)"
+                       style="flex: 1; min-width: 150px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+                <button type="submit" class="btn btn-secondary" style="padding: 0.5rem 1rem;">+ Add Item</button>
+            </form>
+        </section>
+        {% endfor %}
+    </div>
+
+    <!-- Add Category -->
+    <div class="card" style="margin-top: 2rem;">
+        <h3 style="margin-bottom: 0.75rem;">Add Category</h3>
+        <form method="post" action="/super-admin/restaurant/{{ restaurant.id }}/menu/category" class="flex">
+            <input type="text" name="name_en" placeholder="Category name (English)" required
+                   style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">+ Add Category</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% if order_items %}
+<div style="margin-bottom: 0.5rem;">
+    {% for item in order_items %}
+    <div style="padding: 0.3rem 0; border-bottom: 1px solid #eee; font-size: 0.9rem;">
+        <div class="flex" style="justify-content: space-between;">
+            <span><strong>{{ item.qty }}x</strong> {{ item.name.get('en', '') }}</span>
+            <span style="font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 4px;
+                {% if item.status == 'placed' %}background: #fff3cd; color: #856404;
+                {% elif item.status == 'accepted' %}background: #cce5ff; color: #004085;
+                {% elif item.status == 'preparing' %}background: #d4edda; color: #155724;
+                {% elif item.status == 'ready' %}background: #d1ecf1; color: #0c5460;
+                {% endif %}">
+                {{ item.status }}
+            </span>
+        </div>
+        {% if item.modifiers %}
+        <small style="color: #666;">+ {{ item.modifiers }}</small><br>
+        {% endif %}
+        {% if item.notes %}
+        <small style="color: #e63946;">Note: {{ item.notes }}</small>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p style="color: #999; text-align: center; padding: 1rem;">No orders yet</p>
+{% endif %}

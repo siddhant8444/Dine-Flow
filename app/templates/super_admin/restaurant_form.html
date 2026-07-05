@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}New Restaurant{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 500px; margin-top: 3rem;">
+    <div class="card" style="padding: 2rem;">
+        <h1 style="margin-bottom: 1.5rem;">New Restaurant</h1>
+        {% if error %}
+        <div style="background: #f8d7da; color: #721c24; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+            {{ error }}
+        </div>
+        {% endif %}
+        <form method="post">
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.3rem; font-weight: 500;">Restaurant Name</label>
+                <input type="text" name="name" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.3rem; font-weight: 500;">Slug (URL identifier)</label>
+                <input type="text" name="slug" required
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;"
+                       placeholder="e.g. tandoori-flame">
+                <small style="color: #999;">Customers will visit: yourdomain.com/<strong>slug</strong>/menu/table-token</small>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.3rem; font-weight: 500;">Suburb</label>
+                <input type="text" name="suburb"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;"
+                       placeholder="e.g. Harris Park">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.3rem; font-weight: 500;">Number of Tables</label>
+                <input type="number" name="table_count" value="10" min="1"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
+                Create Restaurant
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
