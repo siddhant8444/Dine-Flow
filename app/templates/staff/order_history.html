@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Order History — {{ restaurant.name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <header class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1>{{ restaurant.name }}</h1>
+            <a href="/{{ restaurant.slug }}/staff/dashboard" style="color: #457b9d; font-size: 0.9rem;">← Dashboard</a>
+        </div>
+    </header>
+
+    <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Order History (Last 100)</h2>
+
+    {% if orders %}
+    <div style="display: grid; gap: 0.75rem;">
+        {% for order in orders %}
+        <div class="card">
+            <div class="flex" style="justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>Table {{ order.table.table_number }}</strong>
+                    <span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">
+                        {{ order.created_at.strftime('%d/%m/%Y %I:%M %p') }}
+                    </span>
+                </div>
+                <span style="background: #d4edda; color: #155724; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+                    Paid
+                </span>
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+                {% for item in order.items %}
+                <div>
+                    {{ item.quantity }}x {{ item.menu_item.name.get('en', '') }}
+                    {% if item.modifiers %}
+                    <small style="color: #666;">(+ {{ item.modifiers|map(attribute='name')|join(', ') }})</small>
+                    {% endif %}
+                    {% if item.notes %}
+                    <small style="color: #e63946;">— {{ item.notes }}</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #999; text-align: center; padding: 2rem;">No completed orders yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

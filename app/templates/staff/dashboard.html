@@ -2,12 +2,14 @@
 {% block title %}{{ restaurant.name }} - Staff Dashboard{% endblock %}
 {% block content %}
 <div class="container" x-data="dashboardApp()">
-    <header class="flex" style="justify-content: space-between; align-items: center; padding: 0.5rem 0; margin-bottom: 1rem;">
+    <header class="flex" style="justify-content: space-between; align-items: center; padding: 0.5rem 0; margin-bottom: 1rem; flex-wrap: wrap;">
         <div>
             <h1>{{ restaurant.name }}</h1>
             <small>Staff Dashboard</small>
         </div>
         <div class="flex">
+            <a href="/{{ restaurant.slug }}/staff/menu" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Menu Toggle</a>
+            <a href="/{{ restaurant.slug }}/staff/orders/history" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">History</a>
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                 <input type="checkbox" x-model="soundEnabled" @change="toggleSound">
                 🔔 Sound

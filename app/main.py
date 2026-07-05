@@ -157,6 +157,44 @@ async def order_status(slug: str, order_id: int, request: Request, lang: str = "
 
 # ─── Staff Routes ─────────────────────────────────────────────────────
 
+@app.get("/{slug}/staff/menu", response_class=HTMLResponse)
+async def staff_menu(slug: str, request: Request, db: Session = Depends(get_db)):
+    staff_auth(request, slug)
+    restaurant = get_restaurant_by_slug(slug, db)
+    categories = db.query(MenuCategory).filter(
+        MenuCategory.restaurant_id == restaurant.id
+    ).order_by(MenuCategory.sort_order).all()
+    return templates.TemplateResponse(request, "staff/menu.html", {
+        "restaurant": restaurant,
+        "categories": categories,
+    })
+
+
+@app.post("/{slug}/staff/menu/item/{item_id}/toggle")
+async def staff_toggle_item(slug: str, item_id: int, request: Request, db: Session = Depends(get_db)):
+    staff_auth(request, slug)
+    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    item.available = not item.available
+    db.commit()
+    return {"available": item.available}
+
+
+@app.get("/{slug}/staff/orders/history", response_class=HTMLResponse)
+async def staff_order_history(slug: str, request: Request, db: Session = Depends(get_db)):
+    staff_auth(request, slug)
+    restaurant = get_restaurant_by_slug(slug, db)
+    tables = db.query(Table).filter(Table.restaurant_id == restaurant.id).all()
+    orders = db.query(Order).filter(
+        Order.table_id.in_([t.id for t in tables]),
+        Order.status == "paid"
+    ).order_by(Order.created_at.desc()).limit(100).all()
+    return templates.TemplateResponse(request, "staff/order_history.html", {
+        "restaurant": restaurant,
+        "orders": orders,
+    })
+
 @app.get("/{slug}/staff/login", response_class=HTMLResponse)
 async def staff_login_form(slug: str, request: Request, db: Session = Depends(get_db)):
     restaurant = get_restaurant_by_slug(slug, db)
@@ -343,6 +381,79 @@ async def staff_ws(slug: str, websocket: WebSocket, db: Session = Depends(get_db
 
 
 # ─── Super Admin Routes ───────────────────────────────────────────────
+
+@app.post("/super-admin/restaurant/{rest_id}/menu/import-csv")
+async def admin_import_csv(
+    rest_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    admin_auth(request)
+    restaurant = db.query(Restaurant).filter(Restaurant.id == rest_id).first()
+    if not restaurant:
+        raise HTTPException(404, "Restaurant not found")
+
+    import csv, io
+    content = await file.read()
+    reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
+
+    all_cats = db.query(MenuCategory).filter(
+        MenuCategory.restaurant_id == rest_id
+    ).all()
+
+    def find_cat(name):
+        for c in all_cats:
+            if c.name.get("en", "") == name:
+                return c
+        return None
+
+    count = 0
+    for row in reader:
+        cat_name = row.get("category", "").strip()
+        if not cat_name:
+            continue
+        category = find_cat(cat_name)
+        if not category:
+            category = MenuCategory(restaurant_id=rest_id, name={"en": cat_name})
+            db.add(category)
+            db.flush()
+            all_cats.append(category)
+
+        item = MenuItem(
+            category_id=category.id,
+            name={"en": row.get("name_en", "").strip()},
+            description={"en": row.get("description_en", "").strip()},
+            price=float(row.get("price", 0)),
+        )
+        db.add(item)
+        count += 1
+
+    db.commit()
+    return RedirectResponse(url=f"/super-admin/restaurant/{rest_id}/menu?imported={count}", status_code=303)
+
+
+@app.post("/super-admin/restaurant/{rest_id}/menu/item/{item_id}/edit")
+async def admin_edit_item(
+    rest_id: int,
+    item_id: int,
+    request: Request,
+    name_en: str = Form(...),
+    price: float = Form(...),
+    description_en: str = Form(""),
+    available: str = Form("on"),
+    db: Session = Depends(get_db),
+):
+    admin_auth(request)
+    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    item.name = {"en": name_en}
+    item.price = price
+    item.description = {"en": description_en}
+    item.available = (available == "on")
+    db.commit()
+    return RedirectResponse(url=f"/super-admin/restaurant/{rest_id}/menu", status_code=303)
 
 @app.get("/super-admin/login", response_class=HTMLResponse)
 async def admin_login_form(request: Request):

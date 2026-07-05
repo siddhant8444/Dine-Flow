@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Menu — {{ restaurant.name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <header class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1>{{ restaurant.name }}</h1>
+            <a href="/{{ restaurant.slug }}/staff/dashboard" style="color: #457b9d; font-size: 0.9rem;">← Dashboard</a>
+        </div>
+    </header>
+
+    <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Toggle Availability</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">Mark items as sold out for the day. Customers won't see sold-out items on the menu.</p>
+
+    <div style="display: grid; gap: 1.5rem;">
+        {% for cat in categories %}
+        <section>
+            <h3 style="font-size: 1rem; color: #457b9d; margin-bottom: 0.5rem;">{{ cat.name.get('en', '') }}</h3>
+            <div style="display: grid; gap: 0.5rem;">
+                {% for item in cat.items %}
+                <div class="card flex" style="justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>{{ item.name.get('en', '') }}</strong>
+                        <span style="color: #666;">— ${{ "%.2f"|format(item.price) }}</span>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <span style="font-size: 0.85rem; color: {{ '#e63946' if not item.available else '#2a9d8f' }};">
+                            {{ 'Sold Out' if not item.available else 'Available' }}
+                        </span>
+                        <input type="checkbox" {{ 'checked' if item.available else '' }}
+                               hx-post="/{{ restaurant.slug }}/staff/menu/item/{{ item.id }}/toggle"
+                               hx-target="closest label"
+                               hx-swap="outerHTML"
+                               hx-trigger="change">
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
