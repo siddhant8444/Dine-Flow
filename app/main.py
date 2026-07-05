@@ -380,6 +380,16 @@ async def staff_ws(slug: str, websocket: WebSocket, db: Session = Depends(get_db
         manager.disconnect(restaurant.id, websocket)
 
 
+# ─── Landing Page ─────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def landing(request: Request, db: Session = Depends(get_db)):
+    restaurants = db.query(Restaurant).all()
+    return templates.TemplateResponse(request, "landing.html", {
+        "restaurants": restaurants,
+    })
+
+
 # ─── Super Admin Routes ───────────────────────────────────────────────
 
 @app.post("/super-admin/restaurant/{rest_id}/menu/import-csv")
