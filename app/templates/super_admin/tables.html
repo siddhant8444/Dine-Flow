@@ -1,32 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Tables — {{ restaurant.name }}{% endblock %}
+{% block head %}
+<style>
+@media print {
+    .no-print { display: none; }
+    body { padding: 10mm; }
+    .qr-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    .table-card { break-inside: avoid; page-break-inside: avoid; }
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="container">
-    <header style="margin-bottom: 2rem;">
-        <h1>{{ restaurant.name }} — Tables</h1>
-        <a href="/super-admin/dashboard" style="color: #457b9d; font-size: 0.9rem;">← Back to restaurants</a>
+    <header class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1>{{ restaurant.name }} — Tables</h1>
+            <a href="/super-admin/dashboard" style="color: #457b9d; font-size: 0.9rem;">← Back to restaurants</a>
+        </div>
+        <button class="btn btn-primary no-print" onclick="window.print()">🖨️ Print QR Codes</button>
     </header>
 
-    <p style="margin-bottom: 1rem;">
-        <a href="/{{ restaurant.slug }}/staff/dashboard" class="btn btn-secondary" target="_blank">Staff Dashboard</a>
-    </p>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+    <div class="qr-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem;">
         {% for table in tables %}
-        <div class="card" style="text-align: center; {% if table.is_occupied %}border: 2px solid #e63946;{% endif %}">
-            <h2 style="font-size: 1.5rem;">Table {{ table.table_number }}</h2>
-            <div style="font-size: 0.85rem; color: {% if table.is_occupied %}#e63946{% else %}#2a9d8f{% endif %};">
-                {{ 'Occupied' if table.is_occupied else 'Empty' }}
+        <div class="table-card card" style="text-align: center; padding: 1.5rem 1rem;">
+            <div style="font-size: 0.8rem; color: #999; margin-bottom: 0.5rem;">SCAN TO ORDER</div>
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.75rem;">Table {{ table.table_number }}</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ request.base_url }}{{ restaurant.slug }}/menu/{{ table.qr_token }}"
+                 alt="QR for Table {{ table.table_number }}"
+                 style="width: 150px; height: 150px; display: block; margin: 0 auto;"
+                 onerror="this.style.display='none'">
+            <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #666; word-break: break-all;">
+                {{ request.base_url }}{{ restaurant.slug }}/menu/{{ table.qr_token }}
             </div>
-            <div style="margin-top: 0.75rem; font-size: 0.8rem; word-break: break-all; color: #999;">
-                Token: {{ table.qr_token[:12] }}...
-            </div>
-            <div style="margin-top: 0.5rem;">
+            <div class="no-print" style="margin-top: 0.5rem;">
                 <a href="/{{ restaurant.slug }}/menu/{{ table.qr_token }}" target="_blank"
-                   class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Preview Menu</a>
-            </div>
-            <div>
-                <small style="color: #999;">Scan URL: /{{ restaurant.slug }}/menu/{{ table.qr_token }}</small>
+                   class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Preview</a>
             </div>
         </div>
         {% endfor %}
