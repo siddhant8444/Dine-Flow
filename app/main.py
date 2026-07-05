@@ -67,7 +67,7 @@ def get_restaurant_by_slug(slug: str, db: Session) -> Restaurant:
 # ─── Customer Routes ─────────────────────────────────────────────────
 
 @app.get("/{slug}/menu/{table_token}", response_class=HTMLResponse)
-async def customer_menu(slug: str, table_token: str, lang: str = "en", db: Session = Depends(get_db)):
+async def customer_menu(slug: str, table_token: str, request: Request, lang: str = "en", db: Session = Depends(get_db)):
     restaurant = get_restaurant_by_slug(slug, db)
     table = db.query(Table).filter(Table.qr_token == table_token, Table.restaurant_id == restaurant.id).first()
     if not table:
@@ -77,8 +77,7 @@ async def customer_menu(slug: str, table_token: str, lang: str = "en", db: Sessi
         MenuCategory.restaurant_id == restaurant.id
     ).order_by(MenuCategory.sort_order).all()
 
-    return templates.TemplateResponse("customer/menu.html", {
-        "request": {},
+    return templates.TemplateResponse(request, "customer/menu.html", {
         "restaurant": restaurant,
         "table": table,
         "categories": categories,
@@ -144,12 +143,13 @@ async def place_order(slug: str, body: PlaceOrderRequest, db: Session = Depends(
 
 
 @app.get("/{slug}/order/{order_id}/status", response_class=HTMLResponse)
-async def order_status(slug: str, order_id: int, lang: str = "en", db: Session = Depends(get_db)):
+async def order_status(slug: str, order_id: int, request: Request, lang: str = "en", db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(404, "Order not found")
-    return templates.TemplateResponse("customer/order_status.html", {
-        "request": {},
+    restaurant = get_restaurant_by_slug(slug, db)
+    return templates.TemplateResponse(request, "customer/order_status.html", {
+        "restaurant": restaurant,
         "order": order,
         "lang": lang,
     })
@@ -158,17 +158,16 @@ async def order_status(slug: str, order_id: int, lang: str = "en", db: Session =
 # ─── Staff Routes ─────────────────────────────────────────────────────
 
 @app.get("/{slug}/staff/login", response_class=HTMLResponse)
-async def staff_login_form(slug: str, db: Session = Depends(get_db)):
+async def staff_login_form(slug: str, request: Request, db: Session = Depends(get_db)):
     restaurant = get_restaurant_by_slug(slug, db)
-    return templates.TemplateResponse("staff/login.html", {"request": {}, "restaurant": restaurant})
+    return templates.TemplateResponse(request, "staff/login.html", {"restaurant": restaurant})
 
 
 @app.post("/{slug}/staff/login")
-async def staff_login(slug: str, password: str = Form(...), db: Session = Depends(get_db)):
+async def staff_login(slug: str, request: Request, password: str = Form(...), db: Session = Depends(get_db)):
     restaurant = get_restaurant_by_slug(slug, db)
     if password != "dineflow123":
-        return templates.TemplateResponse("staff/login.html", {
-            "request": {},
+        return templates.TemplateResponse(request, "staff/login.html", {
             "restaurant": restaurant,
             "error": "Wrong password"
         })
@@ -191,8 +190,7 @@ async def staff_dashboard(slug: str, request: Request, db: Session = Depends(get
         Order.table_id.in_([t.id for t in tables]),
         Order.status != "paid"
     ).order_by(Order.created_at.desc()).all()
-    return templates.TemplateResponse("staff/dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "staff/dashboard.html", {
         "restaurant": restaurant,
         "tables": tables,
         "orders": orders,
@@ -216,8 +214,7 @@ async def update_order_status(slug: str, order_id: int, body: OrderStatusUpdate,
             Order.table_id.in_([t.id for t in tables]),
             Order.status != "paid"
         ).order_by(Order.created_at.desc()).all()
-        return templates.TemplateResponse("staff/_live_orders.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "staff/_live_orders.html", {
             "restaurant": restaurant,
             "orders": orders,
         })
@@ -257,8 +254,7 @@ async def view_bill(slug: str, table_id: int, request: Request, db: Session = De
     gst = round(subtotal * restaurant.gst_rate / 100, 2)
     total = round(subtotal + gst, 2)
 
-    return templates.TemplateResponse("staff/bill.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "staff/bill.html", {
         "restaurant": restaurant,
         "table": table,
         "order_items": order_items,
@@ -292,8 +288,7 @@ async def print_docket(slug: str, order_id: int, request: Request, db: Session =
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(404, "Order not found")
-    return templates.TemplateResponse("staff/docket.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "staff/docket.html", {
         "restaurant": restaurant,
         "order": order,
     })
@@ -324,8 +319,7 @@ async def table_orders_partial(slug: str, table_id: int, request: Request, db: S
                 "order_id": order.id,
             })
 
-    return templates.TemplateResponse("staff/_table_orders.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "staff/_table_orders.html", {
         "table": table,
         "restaurant": restaurant,
         "order_items": order_items,
@@ -352,13 +346,13 @@ async def staff_ws(slug: str, websocket: WebSocket, db: Session = Depends(get_db
 
 @app.get("/super-admin/login", response_class=HTMLResponse)
 async def admin_login_form(request: Request):
-    return templates.TemplateResponse("super_admin/login.html", {"request": request})
+    return templates.TemplateResponse(request, "super_admin/login.html", {})
 
 
 @app.post("/super-admin/login")
 async def admin_login(request: Request, password: str = Form(...)):
     if password != "admin123":
-        return templates.TemplateResponse("super_admin/login.html", {"request": request, "error": "Wrong password"})
+        return templates.TemplateResponse(request, "super_admin/login.html", {"error": "Wrong password"})
     response = RedirectResponse(url="/super-admin/dashboard", status_code=303)
     response.set_cookie(key="admin_token", value="authenticated")
     return response
@@ -373,8 +367,7 @@ def admin_auth(request: Request):
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     admin_auth(request)
     restaurants = db.query(Restaurant).all()
-    return templates.TemplateResponse("super_admin/dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "super_admin/dashboard.html", {
         "restaurants": restaurants,
     })
 
@@ -382,7 +375,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
 @app.get("/super-admin/restaurant/new", response_class=HTMLResponse)
 async def admin_new_restaurant_form(request: Request):
     admin_auth(request)
-    return templates.TemplateResponse("super_admin/restaurant_form.html", {"request": request})
+    return templates.TemplateResponse(request, "super_admin/restaurant_form.html", {})
 
 
 @app.post("/super-admin/restaurant/new")
@@ -397,8 +390,7 @@ async def admin_create_restaurant(
     admin_auth(request)
     existing = db.query(Restaurant).filter(Restaurant.slug == slug).first()
     if existing:
-        return templates.TemplateResponse("super_admin/restaurant_form.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "super_admin/restaurant_form.html", {
             "error": "Slug already taken",
         })
 
@@ -422,8 +414,7 @@ async def admin_menu_editor(request: Request, rest_id: int, db: Session = Depend
     categories = db.query(MenuCategory).filter(
         MenuCategory.restaurant_id == restaurant.id
     ).order_by(MenuCategory.sort_order).all()
-    return templates.TemplateResponse("super_admin/menu_editor.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "super_admin/menu_editor.html", {
         "restaurant": restaurant,
         "categories": categories,
     })
@@ -485,8 +476,7 @@ async def admin_tables(request: Request, rest_id: int, db: Session = Depends(get
     if not restaurant:
         raise HTTPException(404, "Restaurant not found")
     tables = db.query(Table).filter(Table.restaurant_id == rest_id).order_by(Table.table_number).all()
-    return templates.TemplateResponse("super_admin/tables.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "super_admin/tables.html", {
         "restaurant": restaurant,
         "tables": tables,
     })

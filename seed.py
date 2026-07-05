@@ -66,8 +66,10 @@ db.add_all([
 ])
 
 db.commit()
+name = restaurant.name
+item_count = len(items)
 db.close()
-print(f"Seeded '{restaurant.name}' with 12 tables and {len(items)} menu items across 5 categories.")
+print(f"Seeded '{name}' with 12 tables and {item_count} menu items across 5 categories.")
 print(f"Staff dashboard: http://localhost:8000/tandoori-flame/staff/login (password: dineflow123)")
 print(f"Super admin:     http://localhost:8000/super-admin/login (password: admin123)")
 print(f"Customer menu:   http://localhost:8000/tandoori-flame/menu/<table-token>")
