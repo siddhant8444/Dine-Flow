@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}{{ restaurant.name }} - Menu{% endblock %}
+{% block content %}
+<div class="container" x-data="menuApp()">
+    <header style="padding: 1rem 0; border-bottom: 1px solid #eee; margin-bottom: 1rem;">
+        <div class="flex" style="justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="font-size: 1.4rem;">{{ restaurant.name }}</h1>
+                <small>Table {{ table.table_number }}</small>
+            </div>
+            <div class="flex">
+                <select @change="changeLang($event.target.value)" style="padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid #ccc;">
+                    <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
+                    <option value="hi" {% if lang == 'hi' %}selected{% endif %}>हिन्दी</option>
+                    <option value="zh" {% if lang == 'zh' %}selected{% endif %}>中文</option>
+                    <option value="es" {% if lang == 'es' %}selected{% endif %}>Español</option>
+                    <option value="vi" {% if lang == 'vi' %}selected{% endif %}>Tiếng Việt</option>
+                    <option value="th" {% if lang == 'th' %}selected{% endif %}>ไทย</option>
+                </select>
+                <button @click="showCart = true" class="btn btn-primary" style="position: relative;">
+                    Cart <span x-text="cart.length" style="background: white; color: #e63946; border-radius: 50%; padding: 0 6px; font-weight: bold;"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div style="display: grid; gap: 2rem;">
+        {% for cat in categories %}
+        <section>
+            <h2 style="font-size: 1.2rem; margin-bottom: 0.75rem; color: #457b9d;">
+                {{ cat.name.get(lang, cat.name.get('en', '')) }}
+            </h2>
+            <div style="display: grid; gap: 0.75rem;">
+                {% for item in cat.items if item.available %}
+                <div class="card flex" style="justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 1rem;">{{ item.name.get(lang, item.name.get('en', '')) }}</h3>
+                        {% if item.description %}
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                            {{ item.description.get(lang, item.description.get('en', '')) }}
+                        </p>
+                        {% endif %}
+                        <p style="font-weight: bold; margin-top: 0.5rem;">${{ "%.2f"|format(item.price) }}</p>
+                    </div>
+                    <button class="btn btn-primary" style="white-space: nowrap;"
+                            @click="addToCart({{ item.id }}, '{{ item.name.get(lang, item.name.get('en', ''))|e }}', {{ item.price }})">
+                        +
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+
+    <!-- Cart Drawer -->
+    <div x-show="showCart" x-cloak style="position: fixed; top: 0; right: 0; bottom: 0; width: 90%; max-width: 400px; background: white; box-shadow: -4px 0 20px rgba(0,0,0,0.15); z-index: 100; padding: 1rem; overflow-y: auto;"
+         @click.outside="showCart = false">
+        <div class="flex" style="justify-content: space-between; margin-bottom: 1rem;">
+            <h2>Your Cart</h2>
+            <button @click="showCart = false" style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">&times;</button>
+        </div>
+
+        <template x-for="(item, idx) in cart" :key="idx">
+            <div class="card mb-1">
+                <div class="flex" style="justify-content: space-between;">
+                    <div>
+                        <strong x-text="item.name"></strong>
+                        <span x-text="' x ' + item.qty"></span>
+                    </div>
+                    <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                </div>
+                <div style="margin-top: 0.3rem;">
+                    <textarea x-model="item.notes" placeholder="Special instructions..." style="width: 100%; padding: 0.3rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid #ddd; resize: none;" rows="2"></textarea>
+                </div>
+                <button @click="removeItem(idx)" style="border: none; background: none; color: #e63946; cursor: pointer; font-size: 0.85rem;">Remove</button>
+            </div>
+        </template>
+
+        <div x-show="cart.length === 0" style="text-align: center; color: #999; padding: 2rem;">
+            Your cart is empty
+        </div>
+
+        <div x-show="cart.length > 0" style="margin-top: 1rem;">
+            <div class="flex" style="justify-content: space-between; font-weight: bold; font-size: 1.1rem;">
+                <span>Total:</span>
+                <span x-text="'$' + total.toFixed(2)"></span>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem; font-size: 1.1rem;"
+                    @click="placeOrder()" x-text="placing ? 'Placing Order...' : 'Place Order'">
+            </button>
+        </div>
+    </div>
+
+    <!-- Order Confirmation Modal -->
+    <div x-show="orderPlaced" x-cloak style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200;">
+        <div class="card" style="padding: 2rem; text-align: center; max-width: 400px;">
+            <h2 style="color: #2a9d8f; margin-bottom: 1rem;">✓ Order Placed!</h2>
+            <p>Your order has been sent to the kitchen.</p>
+            <p style="margin-top: 0.5rem; color: #666;">Order #<span x-text="orderId"></span></p>
+            <button class="btn btn-secondary" style="margin-top: 1rem;" @click="orderPlaced = false; cart = []; showCart = false;">
+                Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+function menuApp() {
+    return {
+        cart: [],
+        showCart: false,
+        orderPlaced: false,
+        orderId: null,
+        placing: false,
+        lang: '{{ lang }}',
+
+        changeLang(lang) {
+            const url = new URL(window.location);
+            url.searchParams.set('lang', lang);
+            window.location = url.toString();
+        },
+
+        addToCart(id, name, price) {
+            const existing = this.cart.find(i => i.id === id && i.notes === '');
+            if (existing) {
+                existing.qty++;
+            } else {
+                this.cart.push({ id, name, price, qty: 1, notes: '', modifierIds: [] });
+            }
+        },
+
+        removeItem(idx) {
+            this.cart.splice(idx, 1);
+        },
+
+        get total() {
+            return this.cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+        },
+
+        async placeOrder() {
+            if (this.placing) return;
+            this.placing = true;
+            try {
+                const res = await fetch('/{{ restaurant.slug }}/order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        table_token: '{{ table.qr_token }}',
+                        items: this.cart.map(i => ({
+                            menu_item_id: i.id,
+                            quantity: i.qty,
+                            notes: i.notes,
+                            modifier_ids: i.modifierIds,
+                        }))
+                    })
+                });
+                const data = await res.json();
+                this.orderId = data.order_id;
+                this.orderPlaced = true;
+            } catch(e) {
+                alert('Failed to place order. Try again.');
+            } finally {
+                this.placing = false;
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

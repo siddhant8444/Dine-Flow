@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Order Status{% endblock %}
+{% block content %}
+<div class="container text-center" style="padding-top: 3rem;">
+    <h1>Order #{{ order.id }}</h1>
+    <div style="font-size: 1.2rem; margin-top: 1rem;">
+        Status: <strong>{{ order.status }}</strong>
+    </div>
+    <div style="margin-top: 2rem;">
+        <div hx-get="/{{ restaurant.slug }}/order/{{ order.id }}/status" hx-trigger="every 5s" hx-swap="innerHTML">
+            <!-- auto-refresh -->
+        </div>
+    </div>
+    <a href="/{{ restaurant.slug }}/menu/{{ order.table.qr_token }}" class="btn btn-secondary" style="margin-top: 2rem;">Back to Menu</a>
+</div>
+{% endblock %}
