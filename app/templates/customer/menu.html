@@ -1,15 +1,72 @@
 {% extends "base.html" %}
 {% block title %}{{ restaurant.name }} - Menu{% endblock %}
 {% block content %}
-<div class="container" x-data="menuApp()">
-    <header style="padding: 1rem 0; border-bottom: 1px solid #eee; margin-bottom: 1rem;">
-        <div class="flex" style="justify-content: space-between; align-items: center;">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #1a1a2e; }
+.header { position: sticky; top: 0; z-index: 50; background: white; padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.header-top { display: flex; justify-content: space-between; align-items: center; }
+.resto-name { font-size: 1.25rem; font-weight: 700; }
+.table-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 20px; margin-top: 0.2rem; }
+.lang-select { padding: 0.35rem 0.6rem; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; background: white; }
+.cart-btn { position: relative; background: #e63946; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cart-badge { position: absolute; top: -4px; right: -4px; background: white; color: #e63946; border-radius: 50%; width: 20px; height: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.cat-section { margin-bottom: 1.5rem; }
+.cat-title { font-size: 1.1rem; font-weight: 700; color: #333; margin-bottom: 0.75rem; padding: 0 1.25rem; }
+.item-card { background: white; margin: 0 1.25rem 0.5rem; border-radius: 14px; padding: 1rem; display: flex; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.item-img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #f0f0f0; flex-shrink: 0; }
+.item-body { flex: 1; min-width: 0; }
+.item-name { font-size: 1rem; font-weight: 600; }
+.item-desc { font-size: 0.8rem; color: #888; margin-top: 0.15rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item-price { font-weight: 700; color: #e63946; margin-top: 0.4rem; font-size: 0.95rem; }
+.add-btn { background: #e63946; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: center; transition: transform 0.15s; }
+.add-btn:active { transform: scale(0.9); }
+.qty-control { display: flex; align-items: center; gap: 0.5rem; align-self: center; flex-shrink: 0; }
+.qty-control button { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #e63946; background: white; color: #e63946; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.qty-control span { font-size: 1rem; font-weight: 600; min-width: 20px; text-align: center; }
+
+/* Cart Overlay */
+.cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; transition: opacity 0.2s; }
+.cart-drawer { position: fixed; bottom: 0; left: 0; right: 0; max-height: 80vh; background: white; border-radius: 20px 20px 0 0; z-index: 201; padding: 1.25rem; overflow-y: auto; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
+.cart-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 1rem; }
+.cart-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
+.cart-item { display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0; }
+.cart-item-info { flex: 1; }
+.cart-item-name { font-weight: 600; font-size: 0.95rem; }
+.cart-item-notes { margin-top: 0.4rem; }
+.cart-item-notes textarea { width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid #e0e0e0; border-radius: 8px; resize: none; font-family: inherit; color: #333; background: #fafafa; }
+.cart-item-notes textarea::placeholder { color: #ccc; }
+.cart-item-right { text-align: right; flex-shrink: 0; }
+.cart-item-price { font-weight: 600; font-size: 0.9rem; }
+.cart-remove { border: none; background: none; color: #e63946; font-size: 0.8rem; cursor: pointer; padding: 0.2rem 0; }
+.cart-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; padding: 1rem 0; }
+.place-order-btn { width: 100%; padding: 1rem; background: #e63946; color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
+.place-order-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Confirmation */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.confirm-card { background: white; border-radius: 20px; padding: 2rem 1.5rem; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.confirm-check { width: 64px; height: 64px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem; color: #2e7d32; }
+.confirm-title { font-size: 1.3rem; font-weight: 700; text-align: center; color: #2e7d32; }
+.confirm-sub { text-align: center; color: #888; font-size: 0.9rem; margin-top: 0.3rem; }
+.confirm-items { border-top: 1px solid #eee; margin-top: 1.25rem; padding-top: 1rem; }
+.confirm-item { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.9rem; }
+.confirm-item-notes { font-size: 0.8rem; color: #e63946; }
+.confirm-done { width: 100%; padding: 0.9rem; background: #e63946; color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 1.25rem; }
+
+[x-cloak] { display: none !important; }
+</style>
+
+<div x-data="menuApp()">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
             <div>
-                <h1 style="font-size: 1.4rem;">{{ restaurant.name }}</h1>
-                <small>Table {{ table.table_number }}</small>
+                <div class="resto-name">{{ restaurant.name }}</div>
+                <div class="table-badge">Table {{ table.table_number }}</div>
             </div>
-            <div class="flex">
-                <select @change="changeLang($event.target.value)" style="padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid #ccc;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <select class="lang-select" @change="changeLang($event.target.value)">
                     <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
                     <option value="hi" {% if lang == 'hi' %}selected{% endif %}>हिन्दी</option>
                     <option value="zh" {% if lang == 'zh' %}selected{% endif %}>中文</option>
@@ -17,115 +74,132 @@
                     <option value="vi" {% if lang == 'vi' %}selected{% endif %}>Tiếng Việt</option>
                     <option value="th" {% if lang == 'th' %}selected{% endif %}>ไทย</option>
                 </select>
-                <button @click="showCart = true" class="btn btn-primary" style="position: relative;">
-                    Cart <span x-text="cart.length" style="background: white; color: #e63946; border-radius: 50%; padding: 0 6px; font-weight: bold;"></span>
+                <button class="cart-btn" @click="showCart = true">
+                    🛒
+                    <span class="cart-badge" x-show="cartCount > 0" x-text="cartCount"></span>
                 </button>
             </div>
         </div>
-    </header>
+    </div>
 
-    <div style="display: grid; gap: 2rem;">
+    <!-- Menu Sections -->
+    <div style="padding-top: 0.75rem;">
         {% for cat in categories %}
-        <section>
-            <h2 style="font-size: 1.2rem; margin-bottom: 0.75rem; color: #457b9d;">
-                {{ cat.name.get(lang, cat.name.get('en', '')) }}
-            </h2>
-            <div style="display: grid; gap: 0.75rem;">
-                {% for item in cat.items if item.available %}
-                <div class="card flex" style="justify-content: space-between; align-items: start;">
-                    <div style="flex: 1;">
-                        <h3 style="font-size: 1rem;">{{ item.name.get(lang, item.name.get('en', '')) }}</h3>
-                        {% if item.description %}
-                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
-                            {{ item.description.get(lang, item.description.get('en', '')) }}
-                        </p>
-                        {% endif %}
-                        <p style="font-weight: bold; margin-top: 0.5rem;">${{ "%.2f"|format(item.price) }}</p>
-                    </div>
-                    <button class="btn btn-primary" style="white-space: nowrap;"
-                            @click="addToCart({{ item.id }}, '{{ item.name.get(lang, item.name.get('en', ''))|e }}', {{ item.price }})">
-                        +
-                    </button>
+        <div class="cat-section">
+            <div class="cat-title">{{ cat.name.get(lang, cat.name.get('en', '')) }}</div>
+            {% for item in cat.items if item.available %}
+            <div class="item-card">
+                <div class="item-img" style="background: {{ ['#fee2e2','#e0f2fe','#dcfce7','#fef3c7','#f3e8ff','#fce7f3']|random }}; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    {% set emojis = ['🍛','🍗','🥘','🍜','🥟','🍕','🥗','🍝','🍣','🌮','🥙','🍔','🌯','🍦','🍰','🥤','☕','🧋'] %}
+                    {{ emojis[item.id % emojis|length] }}
                 </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endfor %}
-    </div>
-
-    <!-- Cart Drawer -->
-    <div x-show="showCart" x-cloak style="position: fixed; top: 0; right: 0; bottom: 0; width: 90%; max-width: 400px; background: white; box-shadow: -4px 0 20px rgba(0,0,0,0.15); z-index: 100; padding: 1rem; overflow-y: auto;"
-         @click.outside="showCart = false">
-        <div class="flex" style="justify-content: space-between; margin-bottom: 1rem;">
-            <h2>Your Cart</h2>
-            <button @click="showCart = false" style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">&times;</button>
-        </div>
-
-        <template x-for="(item, idx) in cart" :key="idx">
-            <div class="card mb-1">
-                <div class="flex" style="justify-content: space-between;">
-                    <div>
-                        <strong x-text="item.name"></strong>
-                        <span x-text="' x ' + item.qty"></span>
-                    </div>
-                    <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                <div class="item-body">
+                    <div class="item-name">{{ item.name.get(lang, item.name.get('en', '')) }}</div>
+                    {% if item.description %}
+                    <div class="item-desc">{{ item.description.get(lang, item.description.get('en', '')) }}</div>
+                    {% endif %}
+                    <div class="item-price">${{ "%.2f"|format(item.price) }}</div>
                 </div>
-                <div style="margin-top: 0.3rem;">
-                    <textarea x-model="item.notes" placeholder="e.g. spice level, extra sauce, no onions..." style="width: 100%; padding: 0.3rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid #ddd; resize: none; color: #333;" rows="2"></textarea>
-                </div>
-                <button @click="removeItem(idx)" style="border: none; background: none; color: #e63946; cursor: pointer; font-size: 0.85rem;">Remove</button>
-            </div>
-        </template>
-
-        <div x-show="cart.length === 0" style="text-align: center; color: #999; padding: 2rem;">
-            Your cart is empty
-        </div>
-
-        <div x-show="cart.length > 0" style="margin-top: 1rem;">
-            <div class="flex" style="justify-content: space-between; font-weight: bold; font-size: 1.1rem;">
-                <span>Total:</span>
-                <span x-text="'$' + total.toFixed(2)"></span>
-            </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem; font-size: 1.1rem;"
-                    @click="placeOrder()" x-text="placing ? 'Placing Order...' : 'Place Order'">
-            </button>
-        </div>
-    </div>
-
-    <!-- Order Confirmation Modal -->
-    <div x-show="orderPlaced" x-cloak style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200;">
-        <div class="card" style="padding: 2rem; max-width: 420px; width: 90%; max-height: 80vh; overflow-y: auto;">
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="font-size: 3rem; color: #2a9d8f;">✓</div>
-                <h2 style="color: #2a9d8f; margin-top: 0.5rem;">Order Placed!</h2>
-                <p style="color: #666;">Your order has been sent to the kitchen.</p>
-                <p style="font-size: 0.85rem; color: #999;">Order #<span x-text="orderId"></span></p>
-            </div>
-            <div style="border-top: 1px solid #eee; padding-top: 1rem;">
-                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Your Order</h3>
-                <template x-for="(item, idx) in placedItems" :key="idx">
-                    <div style="padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0;">
-                        <div class="flex" style="justify-content: space-between;">
-                            <span><strong x-text="item.name"></strong> <span x-text="'x' + item.qty" style="color: #666;"></span></span>
-                            <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
-                        </div>
-                        <div x-show="item.notes" style="font-size: 0.85rem; color: #e63946; margin-top: 0.25rem;">
-                            📝 <span x-text="item.notes"></span>
-                        </div>
+                <template x-if="!getQty({{ item.id }})">
+                    <button class="add-btn" @click="addToCart({{ item.id }}, '{{ item.name.get(lang, item.name.get('en', ''))|e }}', {{ item.price }})">+</button>
+                </template>
+                <template x-if="getQty({{ item.id }})">
+                    <div class="qty-control">
+                        <button @click="decQty({{ item.id }})">−</button>
+                        <span x-text="getQty({{ item.id }})"></span>
+                        <button @click="incQty({{ item.id }})">+</button>
                     </div>
                 </template>
             </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 0.75rem;"
-                    @click="orderPlaced = false; cart = []; showCart = false;">
-                Done
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bottom spacer -->
+    <div style="height: 100px;"></div>
+
+    <!-- Cart Footer Bar -->
+    <template x-if="cartCount > 0">
+        <div style="position: fixed; bottom: 0; left: 0; right: 0; padding: 0.75rem 1.25rem 1.25rem; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.08); z-index: 100;">
+            <button class="place-order-btn" @click="showCart = true">
+                View Cart · <span x-text="cartCount"></span> item<span x-show="cartCount !== 1">s</span>
+                · $<span x-text="total.toFixed(2)"></span>
             </button>
         </div>
-    </div>
-</div>
+    </template>
 
-<style>
-[x-cloak] { display: none !important; }
-</style>
+    <!-- Cart Drawer -->
+    <template x-if="showCart">
+        <div>
+            <div class="cart-overlay" @click="showCart = false"></div>
+            <div class="cart-drawer">
+                <div class="cart-handle"></div>
+                <div class="cart-title">Your Order</div>
+
+                <template x-for="(item, idx) in cart" :key="idx">
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name" x-text="item.name"></div>
+                            <div style="font-size: 0.85rem; color: #888;">
+                                <button @click="decQty(item.id)" style="border: none; background: none; color: #e63946; cursor: pointer; font-weight: 600; padding: 0;">−</button>
+                                <span style="margin: 0 0.5rem;" x-text="item.qty"></span>
+                                <button @click="incQty(item.id)" style="border: none; background: none; color: #e63946; cursor: pointer; font-weight: 600; padding: 0;">+</button>
+                            </div>
+                            <div class="cart-item-notes">
+                                <textarea x-model="item.notes" placeholder="e.g. spice level, extra sauce, no onions..." rows="1"></textarea>
+                            </div>
+                        </div>
+                        <div class="cart-item-right">
+                            <div class="cart-item-price" x-text="'$' + (item.price * item.qty).toFixed(2)"></div>
+                            <button class="cart-remove" @click="removeItem(idx)">Remove</button>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="cart.length === 0">
+                    <div style="text-align: center; color: #bbb; padding: 2rem 0;">Your cart is empty</div>
+                </template>
+
+                <template x-if="cart.length > 0">
+                    <div>
+                        <div class="cart-total">
+                            <span>Total</span>
+                            <span x-text="'$' + total.toFixed(2)"></span>
+                        </div>
+                        <button class="place-order-btn" @click="placeOrder()" :disabled="placing" x-text="placing ? 'Placing Order...' : 'Place Order'"></button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- Confirmation -->
+    <template x-if="orderPlaced">
+        <div class="confirm-overlay">
+            <div class="confirm-card">
+                <div class="confirm-check">✓</div>
+                <div class="confirm-title">Order Placed!</div>
+                <div class="confirm-sub">Your food is being prepared</div>
+                <div style="text-align: center; font-size: 0.8rem; color: #bbb; margin-top: 0.2rem;">Order #<span x-text="orderId"></span></div>
+
+                <div class="confirm-items">
+                    <template x-for="(item, idx) in placedItems" :key="idx">
+                        <div>
+                            <div class="confirm-item">
+                                <span><span x-text="item.name"></span> <span style="color: #888;" x-text="'x' + item.qty"></span></span>
+                                <span x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                            </div>
+                            <div x-show="item.notes" class="confirm-item-notes">📝 <span x-text="item.notes"></span></div>
+                        </div>
+                    </template>
+                </div>
+
+                <button class="confirm-done" @click="orderPlaced = false; cart = []; showCart = false;">Done</button>
+            </div>
+        </div>
+    </template>
+</div>
 
 <script>
 function menuApp() {
@@ -138,14 +212,21 @@ function menuApp() {
         placedItems: [],
         lang: '{{ lang }}',
 
-        changeLang(lang) {
-            const url = new URL(window.location);
-            url.searchParams.set('lang', lang);
-            window.location = url.toString();
+        get cartCount() {
+            return this.cart.reduce((s, i) => s + i.qty, 0);
+        },
+
+        get total() {
+            return this.cart.reduce((s, i) => s + i.price * i.qty, 0);
+        },
+
+        getQty(id) {
+            const item = this.cart.find(i => i.id === id);
+            return item ? item.qty : 0;
         },
 
         addToCart(id, name, price) {
-            const existing = this.cart.find(i => i.id === id && i.notes === '');
+            const existing = this.cart.find(i => i.id === id);
             if (existing) {
                 existing.qty++;
             } else {
@@ -153,12 +234,29 @@ function menuApp() {
             }
         },
 
+        incQty(id) {
+            const item = this.cart.find(i => i.id === id);
+            if (item) item.qty++;
+        },
+
+        decQty(id) {
+            const item = this.cart.find(i => i.id === id);
+            if (item) {
+                item.qty--;
+                if (item.qty <= 0) {
+                    this.cart = this.cart.filter(i => i.id !== id);
+                }
+            }
+        },
+
         removeItem(idx) {
             this.cart.splice(idx, 1);
         },
 
-        get total() {
-            return this.cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+        changeLang(lang) {
+            const url = new URL(window.location);
+            url.searchParams.set('lang', lang);
+            window.location = url.toString();
         },
 
         async placeOrder() {
@@ -182,6 +280,7 @@ function menuApp() {
                 this.orderId = data.order_id;
                 this.placedItems = this.cart.map(i => ({ ...i }));
                 this.orderPlaced = true;
+                this.showCart = false;
             } catch(e) {
                 alert('Failed to place order. Try again.');
             } finally {
